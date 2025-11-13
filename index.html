@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="google-site-verification" content="AioHky6gBYFTKoXFnESEp7ri323X5lvvZAtSQ48WSLM" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="logo.png">
+    <title>Hyper Bot 1.5</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font family --><style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent body scroll, letting chat container scroll */
+        }
+        /* Style for the video background - Optimized for full screen on all devices (mobile/desktop) */
+        #video-background {
+            position: fixed;
+            top: 0; /* Align to top */
+            left: 0; /* Align to left */
+            width: 100vw; /* Use viewport width */
+            height: 100vh; /* Use viewport height */
+            object-fit: cover; /* Ensures the video covers the entire area without distortion */
+            z-index: -100;
+            filter: brightness(0.7); /* Darken the video for better text contrast */
+        }
+        /* Custom scrollbar for chat history */
+        #chat-history::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-history::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        #chat-history::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        /* Glassmorphism effect for the chat box */
+        #chat-container {
+            backdrop-filter: blur(15px);
+            background-color: rgba(0, 0, 0, 0.4); /* Darker transparent background */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+    </style>
+</head>
+<!-- Removed p-4 from the body classes to ensure chat container covers the entire height --><body class="flex items-center justify-center min-h-screen">
+
+    <!-- Video Background (User must provide background.mp4) --><video autoplay loop muted id="video-background">
+        <!-- Replace this with a working video URL if background.mp4 is not available --><source src="background.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Main Chat Container (Responsive) --><div id="chat-container" class="w-full max-w-lg md:max-w-xl lg:max-w-3xl h-[90vh] md:h-[80vh] flex flex-col rounded-xl overflow-hidden text-white transition-all duration-300">
+
+        <!-- Header --><header class="p-4 border-b border-white/20 bg-black/50">
+            <h1 class="text-2xl font-bold text-center">Hyper Bot 1.5</h1>
+        </header>
+
+        <!-- Chat History --><div id="chat-history" class="flex-grow p-4 space-y-4 overflow-y-auto">
+            <!-- Initial Greeting (Now in English) --><div class="flex justify-start">
+                <div class="bg-indigo-600/80 p-3 rounded-xl rounded-tl-none max-w-[80%] shadow-lg">
+                    <p>Hello! I am Hyper Bot. Developed by sithula vikasitha. Ask me anything to get started.</p>
+                </div>
+            </div>
+            <!-- Messages will be appended here --></div>
+
+        <!-- Typing Indicator/Loading (Now in English) --><div id="loading-indicator" class="px-4 py-2 text-sm text-gray-300 hidden">
+            <span class="animate-pulse">Typing...</span>
+        </div>
+
+        <!-- Input Form --><form id="chat-form" class="p-4 border-t border-white/20 bg-black/50 flex space-x-3">
+            <input
+                type="text"
+                id="user-input"
+                placeholder="Your Message..."
+                class="flex-grow p-3 rounded-lg border border-transparent bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-200 placeholder-gray-400"
+                autocomplete="off"
+                required
+            >
+            <button
+                type="submit"
+                id="send-button"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition duration-150 ease-in-out hover:scale-[1.03] disabled:bg-indigo-900/50 disabled:scale-100"
+            >
+                Send
+            </button>
+        </form>
+
+        <!-- Custom Modal for Errors (Now in English) --><div id="error-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4 z-50">
+            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
+                <h3 class="text-xl font-bold text-red-400 mb-4">Error!</h3>
+                <p id="error-message" class="text-gray-200 mb-6"></p>
+                <button onclick="closeModal()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // Gemini API Configuration
+        const apiKey = "AIzaSyAAQFA3NBjfA4PxEhkQosV2LObwd6lSbMs"; // Your API Key
+        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=' + apiKey;
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatHistory = document.getElementById('chat-history');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const sendButton = document.getElementById('send-button');
+        const errorModal = document.getElementById('error-modal');
+        const errorMessage = document.getElementById('error-message');
+
+        /**
+         * Custom utility for exponential backoff retry.
+         * @param {function} fn - The function to retry.
+         * @param {number} maxRetries - Maximum number of retries.
+         * @returns {Promise<Response>}
+         */
+        async function fetchWithRetry(fn, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fn();
+                    if (response.status === 429 && i < maxRetries - 1) {
+                        // Rate limit error (429), retry with backoff
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000; // 1s, 2s, 4s + jitter
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; // Skip to the next iteration (retry)
+                    }
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API Request Error: ${response.status} ${response.statusText}. Details: ${errorText.substring(0, 100)}...`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        // Throw the error if max retries reached
+                        throw error;
+                    }
+                    // Log for debugging, but don't show the user retry attempts
+                }
+            }
+            throw new Error('API request failed.');
+        }
+
+        /**
+         * Displays a new message in the chat history.
+         * @param {string} text - The content of the message.
+         * @param {string} sender - 'user' or 'ai'.
+         * @param {Array<Object>} [sources=[]] - Optional array of grounding sources.
+         */
+        function displayMessage(text, sender, sources = []) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = sender === 'user' ? 'flex justify-end' : 'flex justify-start';
+
+            let messageContent = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Basic Markdown bold conversion
+
+            if (sources.length > 0) {
+                const sourceHtml = sources.map(source =>
+                    `<a href="${source.uri}" target="_blank" class="text-xs text-indigo-300 hover:text-indigo-400 block mt-1 underline">${source.title}</a>`
+                ).join('');
+                messageContent += `<div class="text-[10px] text-gray-400 mt-2 border-t border-gray-600/50 pt-1">Sources:${sourceHtml}</div>`;
+            }
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = `p-3 rounded-xl max-w-[80%] shadow-lg transition-all duration-300 ${
+                sender === 'user'
+                    ? 'bg-blue-600/80 rounded-br-none'
+                    : 'bg-indigo-600/80 rounded-tl-none'
+            }`;
+            messageBubble.innerHTML = `<p class="whitespace-pre-wrap">${messageContent}</p>`;
+
+            messageWrapper.appendChild(messageBubble);
+            chatHistory.appendChild(messageWrapper);
+
+            // Scroll to the bottom
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        /**
+         * Shows the error modal with a specific message.
+         * @param {string} message - The error message to display.
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorModal.classList.remove('hidden');
+            errorModal.classList.add('flex');
+        }
+
+        /**
+         * Closes the error modal.
+         */
+        window.closeModal = function() {
+            errorModal.classList.add('hidden');
+            errorModal.classList.remove('flex');
+        }
+
+        /**
+         * Main function to handle sending a message to the Gemini API.
+         * @param {Event} e - The form submission event.
+         */
+        async function sendMessage(e) {
+            e.preventDefault();
+
+            const prompt = userInput.value.trim();
+            if (!prompt) return;
+
+            // 1. Display user message
+            displayMessage(prompt, 'user');
+            userInput.value = ''; // Clear input field
+
+            // 2. Lock UI and show loading
+            loadingIndicator.classList.remove('hidden');
+            sendButton.disabled = true;
+            userInput.disabled = true;
+
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    // Enable Google Search grounding for up-to-date responses
+                    tools: [{ "google_search": {} }],
+                    // Use a system instruction to guide the model's persona
+                    systemInstruction: {
+                        parts: [{ text: "You are a helpful and friendly AI assistant. Please respond clearly and concisely in English." }]
+                    },
+                };
+
+                const response = await fetchWithRetry(() => fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }));
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                let aiText = "Sorry, I was unable to get a response for this message.";
+                let sources = [];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    aiText = candidate.content.parts[0].text;
+
+                    // Extract grounding sources
+                    const groundingMetadata = candidate.groundingMetadata;
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attribution => ({
+                                uri: attribution.web?.uri,
+                                title: attribution.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title);
+                    }
+                }
+
+                // 3. Display AI response
+                displayMessage(aiText, 'ai', sources);
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showError(`The request failed. Error: ${error.message}.`);
+            } finally {
+                // 4. Unlock UI and hide loading
+                loadingIndicator.classList.add('hidden');
+                sendButton.disabled = false;
+                userInput.disabled = false;
+                userInput.focus(); // Focus back to the input
+            }
+        }
+
+        // Event Listener for form submission
+        chatForm.addEventListener('submit', sendMessage);
+
+    </script>
+</body>
+</html>
