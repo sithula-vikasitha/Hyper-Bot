@@ -1,274 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="google-site-verification" content="AioHky6gBYFTKoXFnESEp7ri323X5lvvZAtSQ48WSLM" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="logo.png">
-    <title>Hyper Bot 1.5</title>
-    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter font family --><style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+    <title>Hyper Bot 2.0 - Super AI Assistant</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Inter Font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Prevent body scroll, letting chat container scroll */
+            background-color: #0f172a; /* Slate 950 */
+            /* Dark Mesh Gradient Background */
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 100%, hsla(225,39%,20%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,20%,1) 0, transparent 50%);
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            height: 100vh;
+            color: #e2e8f0;
         }
-        /* Style for the video background - Optimized for full screen on all devices (mobile/desktop) */
-        #video-background {
-            position: fixed;
-            top: 0; /* Align to top */
-            left: 0; /* Align to left */
-            width: 100vw; /* Use viewport width */
-            height: 100vh; /* Use viewport height */
-            object-fit: cover; /* Ensures the video covers the entire area without distortion */
-            z-index: -100;
-            filter: brightness(0.7); /* Darken the video for better text contrast */
+        
+        /* Dark Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
-        /* Custom scrollbar for chat history */
-        #chat-history::-webkit-scrollbar {
+        
+        .glass-input {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Custom scrollbar for dark mode */
+        #chatContainer::-webkit-scrollbar {
             width: 6px;
         }
-        #chat-history::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 3px;
+        #chatContainer::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
         }
-        #chat-history::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
+        #chatContainer::-webkit-scrollbar-thumb {
+            background-color: rgba(99, 102, 241, 0.4);
+            border-radius: 8px;
         }
-        /* Glassmorphism effect for the chat box */
-        #chat-container {
-            backdrop-filter: blur(15px);
-            background-color: rgba(0, 0, 0, 0.4); /* Darker transparent background */
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+        #chatContainer::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(99, 102, 241, 0.6);
         }
+
+        /* Message Bubbles */
+        .msg-user {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            border-radius: 1.25rem 1.25rem 0 1.25rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+        .msg-ai {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+            border-radius: 1.25rem 1.25rem 1.25rem 0;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Typing Indicator */
+        .dot-flashing {
+            position: relative;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+            animation: dot-flashing 1s infinite linear alternate;
+            animation-delay: 0.5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: "";
+            display: inline-block;
+            position: absolute;
+            top: 0;
+        }
+        .dot-flashing::before {
+            left: -10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 0s;
+        }
+        .dot-flashing::after {
+            left: 10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 1s;
+        }
+        @keyframes dot-flashing {
+            0% { background-color: #94a3b8; }
+            50%, 100% { background-color: rgba(148, 163, 184, 0.2); }
+        }
+
+        /* Markdown Styles for Chat */
+        .prose p { margin-bottom: 0.5rem; }
+        .prose p:last-child { margin-bottom: 0; }
+        .prose pre { background: #0f172a; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); }
+        .prose code { background: rgba(0,0,0,0.2); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.9em; }
+        .prose ul { list-style-type: disc; padding-left: 1.2rem; margin-bottom: 0.5rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.2rem; margin-bottom: 0.5rem; }
+        .prose a { color: #818cf8; text-decoration: underline; }
     </style>
 </head>
-<!-- Removed p-4 from the body classes to ensure chat container covers the entire height --><body class="flex items-center justify-center min-h-screen">
+<body class="antialiased selection:bg-indigo-500 selection:text-white overflow-hidden">
 
-    <!-- Video Background (User must provide background.mp4) --><video autoplay loop muted id="video-background">
-        <!-- Replace this with a working video URL if background.mp4 is not available --><source src="background.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+    <div class="flex flex-col h-screen max-w-5xl mx-auto p-2 md:p-6 lg:p-8">
 
-    <!-- Main Chat Container (Responsive) --><div id="chat-container" class="w-full max-w-lg md:max-w-xl lg:max-w-3xl h-[90vh] md:h-[80vh] flex flex-col rounded-xl overflow-hidden text-white transition-all duration-300">
-
-        <!-- Header --><header class="p-4 border-b border-white/20 bg-black/50">
-            <h1 class="text-2xl font-bold text-center">Hyper Bot 1.5</h1>
-        </header>
-
-        <!-- Chat History --><div id="chat-history" class="flex-grow p-4 space-y-4 overflow-y-auto">
-            <!-- Initial Greeting (Now in English) --><div class="flex justify-start">
-                <div class="bg-indigo-600/80 p-3 rounded-xl rounded-tl-none max-w-[80%] shadow-lg">
-                    <p>Hello! I am Hyper Bot. Developed by sithula vikasitha. Ask me anything to get started.</p>
+        <!-- Header -->
+        <header class="flex items-center justify-between p-4 mb-4 rounded-2xl glass-panel">
+            <div class="flex items-center gap-3">
+                <!-- Bot Logo (Replaced with placeholder) -->
+                <div class="relative group cursor-pointer w-10 h-10">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                    <img src="https://placehold.co/40x40/6366f1/ffffff?text=BOT" alt="Bot Logo" class="relative w-full h-full rounded-full object-cover border-2 border-white/10"/>
+                </div>
+                <!-- /Bot Logo -->
+                <div>
+                    <h1 class="text-xl font-bold text-slate-100 tracking-tight">Hyper Bot 2.0</h1>
+                    <p class="text-xs text-slate-400 font-medium">Dark Mode Enabled</p>
                 </div>
             </div>
-            <!-- Messages will be appended here --></div>
 
-        <!-- Typing Indicator/Loading (Now in English) --><div id="loading-indicator" class="px-4 py-2 text-sm text-gray-300 hidden">
-            <span class="animate-pulse">Typing...</span>
-        </div>
-
-        <!-- Input Form --><form id="chat-form" class="p-4 border-t border-white/20 bg-black/50 flex space-x-3">
-            <input
-                type="text"
-                id="user-input"
-                placeholder="Your Message..."
-                class="flex-grow p-3 rounded-lg border border-transparent bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition duration-200 placeholder-gray-400"
-                autocomplete="off"
-                required
-            >
-            <button
-                type="submit"
-                id="send-button"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition duration-150 ease-in-out hover:scale-[1.03] disabled:bg-indigo-900/50 disabled:scale-100"
-            >
-                Send
-            </button>
-        </form>
-
-        <!-- Custom Modal for Errors (Now in English) --><div id="error-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center p-4 z-50">
-            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
-                <h3 class="text-xl font-bold text-red-400 mb-4">Error!</h3>
-                <p id="error-message" class="text-gray-200 mb-6"></p>
-                <button onclick="closeModal()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition">Close</button>
+            <div id="statusIndicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/60 shadow-sm">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span id="statusText" class="text-xs font-semibold text-slate-300">Online</span>
             </div>
-        </div>
+        </header>
+
+        <!-- Main Chat Area -->
+        <main class="flex-grow flex flex-col gap-4 overflow-hidden">
+            
+            <!-- Chat Container -->
+            <div id="chatContainer" class="flex-grow p-4 md:p-6 glass-panel rounded-2xl overflow-y-auto relative flex flex-col gap-4">
+                
+                <!-- Welcome State -->
+                <div id="welcomeState" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 opacity-40 select-none pointer-events-none">
+                    <svg class="w-16 h-16 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                    </svg>
+                    <h2 class="text-xl font-semibold text-slate-300">Start a conversation</h2>
+                    <p class="text-sm text-slate-500 mt-2">I'm ready to help with your tasks.</p>
+                </div>
+
+                <!-- Messages will be injected here via JS -->
+                
+            </div>
+
+            <!-- Input Area -->
+            <div class="relative group mt-2">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-10 group-hover:opacity-30 transition duration-500 blur"></div>
+                <div class="relative flex items-center bg-slate-800/90 rounded-xl shadow-lg border border-slate-700">
+                    <input type="text" id="promptInput" placeholder="Message Hyper Bot 2.0..." 
+                        class="w-full p-4 pr-16 text-slate-200 bg-transparent border-0 focus:ring-0 placeholder-slate-500 text-lg rounded-xl"
+                        onkeydown="if(event.key === 'Enter') document.getElementById('submitBtn').click()">
+                    
+                    <button id="submitBtn" onclick="generateContent()" 
+                        class="absolute right-2 p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <footer class="text-center pb-1">
+                <p class="text-[10px] text-slate-600 font-medium tracking-wide opacity-80">POWERED BY GEMINI 2.5</p>
+            </footer>
+
+        </main>
     </div>
 
-    <script type="text/javascript">
-        // Gemini API Configuration
-        const apiKey = "AIzaSyAAQFA3NBjfA4PxEhkQosV2LObwd6lSbMs"; // Your API Key
-        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=' + apiKey;
-        const chatForm = document.getElementById('chat-form');
-        const userInput = document.getElementById('user-input');
-        const chatHistory = document.getElementById('chat-history');
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const sendButton = document.getElementById('send-button');
-        const errorModal = document.getElementById('error-modal');
-        const errorMessage = document.getElementById('error-message');
+    <script>
+        // --- API & Config Setup ---
+        const API_KEY = "AIzaSyCXVWB7D2PMeoHAJapg5qO-KrH1ZIIxGbc";
+        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+        
+        // --- DOM Elements ---
+        const promptInput = document.getElementById('promptInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const chatContainer = document.getElementById('chatContainer');
+        const statusText = document.getElementById('statusText');
+        const welcomeState = document.getElementById('welcomeState');
 
-        /**
-         * Custom utility for exponential backoff retry.
-         * @param {function} fn - The function to retry.
-         * @param {number} maxRetries - Maximum number of retries.
-         * @returns {Promise<Response>}
-         */
-        async function fetchWithRetry(fn, maxRetries = 3) {
+        // --- Utility Functions ---
+
+        function setStatus(message, type = 'normal') {
+            statusText.textContent = message;
+            if (type === 'error') statusText.classList.add('text-red-400');
+            else statusText.classList.remove('text-red-400');
+        }
+
+        async function fetchWithRetry(payload, maxRetries = 5, delay = 1000) {
             for (let i = 0; i < maxRetries; i++) {
                 try {
-                    const response = await fn();
-                    if (response.status === 429 && i < maxRetries - 1) {
-                        // Rate limit error (429), retry with backoff
-                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000; // 1s, 2s, 4s + jitter
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        continue; // Skip to the next iteration (retry)
-                    }
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`API Request Error: ${response.status} ${response.statusText}. Details: ${errorText.substring(0, 100)}...`);
+                        if (response.status === 429 && i < maxRetries - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; 
+                            continue;
+                        }
+                        throw new Error(`API Error: ${response.status}`);
                     }
-                    return response;
+                    return await response.json();
                 } catch (error) {
-                    if (i === maxRetries - 1) {
-                        // Throw the error if max retries reached
-                        throw error;
-                    }
-                    // Log for debugging, but don't show the user retry attempts
+                    if (i === maxRetries - 1) throw error;
                 }
             }
-            throw new Error('API request failed.');
         }
 
-        /**
-         * Displays a new message in the chat history.
-         * @param {string} text - The content of the message.
-         * @param {string} sender - 'user' or 'ai'.
-         * @param {Array<Object>} [sources=[]] - Optional array of grounding sources.
-         */
-        function displayMessage(text, sender, sources = []) {
-            const messageWrapper = document.createElement('div');
-            messageWrapper.className = sender === 'user' ? 'flex justify-end' : 'flex justify-start';
+        function createMessageBubble(content, isUser) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[85%] md:max-w-[75%] p-4 text-sm md:text-base leading-relaxed shadow-md ${isUser ? 'msg-user' : 'msg-ai prose prose-invert'}`;
+            
+            if (isUser) {
+                bubble.textContent = content;
+            } else {
+                // Parse markdown for AI response
+                bubble.innerHTML = marked.parse(content);
+            }
+            
+            wrapper.appendChild(bubble);
+            return wrapper;
+        }
 
-            let messageContent = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Basic Markdown bold conversion
+        function createTypingIndicator() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex w-full justify-start';
+            wrapper.id = 'typingIndicator';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'p-4 rounded-2xl rounded-tl-none bg-slate-800/50 border border-slate-700/50 shadow-sm';
+            
+            const dots = document.createElement('div');
+            dots.className = 'dot-flashing mx-3 my-1';
+            
+            bubble.appendChild(dots);
+            wrapper.appendChild(bubble);
+            return wrapper;
+        }
 
-            if (sources.length > 0) {
-                const sourceHtml = sources.map(source =>
-                    `<a href="${source.uri}" target="_blank" class="text-xs text-indigo-300 hover:text-indigo-400 block mt-1 underline">${source.title}</a>`
-                ).join('');
-                messageContent += `<div class="text-[10px] text-gray-400 mt-2 border-t border-gray-600/50 pt-1">Sources:${sourceHtml}</div>`;
+        function renderSources(sources) {
+            if (!sources || sources.length === 0) return null;
+            
+            const container = document.createElement('div');
+            container.className = 'mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-2';
+            
+            sources.forEach(source => {
+                const link = document.createElement('a');
+                link.href = source.uri;
+                link.target = '_blank';
+                link.className = 'inline-flex items-center px-2 py-1 rounded bg-slate-900/50 hover:bg-slate-800 border border-slate-700 text-xs text-indigo-300 hover:text-indigo-200 transition-colors truncate max-w-[150px] no-underline';
+                link.textContent = source.title;
+                container.appendChild(link);
+            });
+            
+            return container;
+        }
+
+
+        // --- Main Logic ---
+
+        async function generateContent() {
+            const userQuery = promptInput.value.trim();
+            if (!userQuery) return;
+
+            // 1. Hide Welcome State if visible
+            if (!welcomeState.classList.contains('hidden')) {
+                welcomeState.classList.add('hidden');
             }
 
-            const messageBubble = document.createElement('div');
-            messageBubble.className = `p-3 rounded-xl max-w-[80%] shadow-lg transition-all duration-300 ${
-                sender === 'user'
-                    ? 'bg-blue-600/80 rounded-br-none'
-                    : 'bg-indigo-600/80 rounded-tl-none'
-            }`;
-            messageBubble.innerHTML = `<p class="whitespace-pre-wrap">${messageContent}</p>`;
+            // 2. Add User Message
+            const userMsg = createMessageBubble(userQuery, true);
+            chatContainer.appendChild(userMsg);
+            
+            // 3. Clear Input & Disable UI
+            promptInput.value = '';
+            submitBtn.disabled = true;
+            promptInput.disabled = true;
+            setStatus('Thinking...');
+            
+            // 4. Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
 
-            messageWrapper.appendChild(messageBubble);
-            chatHistory.appendChild(messageWrapper);
+            // 5. Add Typing Indicator
+            const typingIndicator = createTypingIndicator();
+            chatContainer.appendChild(typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
 
-            // Scroll to the bottom
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        }
-
-        /**
-         * Shows the error modal with a specific message.
-         * @param {string} message - The error message to display.
-         */
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorModal.classList.remove('hidden');
-            errorModal.classList.add('flex');
-        }
-
-        /**
-         * Closes the error modal.
-         */
-        window.closeModal = function() {
-            errorModal.classList.add('hidden');
-            errorModal.classList.remove('flex');
-        }
-
-        /**
-         * Main function to handle sending a message to the Gemini API.
-         * @param {Event} e - The form submission event.
-         */
-        async function sendMessage(e) {
-            e.preventDefault();
-
-            const prompt = userInput.value.trim();
-            if (!prompt) return;
-
-            // 1. Display user message
-            displayMessage(prompt, 'user');
-            userInput.value = ''; // Clear input field
-
-            // 2. Lock UI and show loading
-            loadingIndicator.classList.remove('hidden');
-            sendButton.disabled = true;
-            userInput.disabled = true;
+            const systemPrompt = "You are Hyper Bot 2.0. Respond using Markdown. Be concise, modern, and helpful.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], 
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
 
             try {
-                const payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    // Enable Google Search grounding for up-to-date responses
-                    tools: [{ "google_search": {} }],
-                    // Use a system instruction to guide the model's persona
-                    systemInstruction: {
-                        parts: [{ text: "You are a helpful and friendly AI assistant. Please respond clearly and concisely in English." }]
-                    },
-                };
-
-                const response = await fetchWithRetry(() => fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }));
-
-                const result = await response.json();
+                const result = await fetchWithRetry(payload);
                 const candidate = result.candidates?.[0];
 
-                let aiText = "Sorry, I was unable to get a response for this message.";
-                let sources = [];
+                // Remove typing indicator
+                const indicatorEl = document.getElementById('typingIndicator');
+                if (indicatorEl) indicatorEl.remove();
 
                 if (candidate && candidate.content?.parts?.[0]?.text) {
-                    aiText = candidate.content.parts[0].text;
+                    const text = candidate.content.parts[0].text;
+                    
+                    // Create AI Message Bubble
+                    const aiMsgWrapper = createMessageBubble(text, false);
+                    const aiBubble = aiMsgWrapper.querySelector('.msg-ai');
 
-                    // Extract grounding sources
+                    // Handle Sources
                     const groundingMetadata = candidate.groundingMetadata;
-                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    let sources = [];
+                    if (groundingMetadata?.groundingAttributions) {
                         sources = groundingMetadata.groundingAttributions
-                            .map(attribution => ({
-                                uri: attribution.web?.uri,
-                                title: attribution.web?.title,
-                            }))
-                            .filter(source => source.uri && source.title);
+                            .map(a => ({ uri: a.web?.uri, title: a.web?.title }))
+                            .filter(s => s.uri && s.title);
                     }
+                    
+                    if (sources.length > 0) {
+                        const sourcesEl = renderSources(sources);
+                        if (sourcesEl) aiBubble.appendChild(sourcesEl);
+                    }
+
+                    chatContainer.appendChild(aiMsgWrapper);
+                    
+                    setStatus('Online');
+
+                } else {
+                    throw new Error("No response content");
                 }
 
-                // 3. Display AI response
-                displayMessage(aiText, 'ai', sources);
-
             } catch (error) {
-                console.error("Gemini API Error:", error);
-                showError(`The request failed. Error: ${error.message}.`);
+                // Remove typing indicator if error
+                const indicatorEl = document.getElementById('typingIndicator');
+                if (indicatorEl) indicatorEl.remove();
+                
+                const errorMsg = createMessageBubble("Sorry, I encountered an error. Please try again.", false);
+                errorMsg.querySelector('.msg-ai').classList.add('text-red-300', 'border-red-900/50');
+                chatContainer.appendChild(errorMsg);
+                setStatus('Error', 'error');
             } finally {
-                // 4. Unlock UI and hide loading
-                loadingIndicator.classList.add('hidden');
-                sendButton.disabled = false;
-                userInput.disabled = false;
-                userInput.focus(); // Focus back to the input
+                submitBtn.disabled = false;
+                promptInput.disabled = false;
+                promptInput.focus();
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         }
-
-        // Event Listener for form submission
-        chatForm.addEventListener('submit', sendMessage);
-
     </script>
 </body>
 </html>
